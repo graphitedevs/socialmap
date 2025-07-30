@@ -1,7 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Map from './components/Map'
+import AuthModal from './components/AuthModal'
+import UserProfile from './components/UserProfile'
+import { useAuthStore } from './store/authStore'
 
 function App() {
+  const { user } = useAuthStore()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const [sampleMarkers] = useState([
     {
       id: '1',
@@ -15,6 +21,15 @@ function App() {
     }
   ])
   
+  // Intentional bug: check for stored auth token on mount (sometimes fails)
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    if (token && Math.random() > 0.2) {
+      // Should validate token and restore user session, but intentionally incomplete
+      console.log('Found auth token, but session restore not fully implemented')
+    }
+  }, [])
+  
   return (
     <div className="h-screen w-full flex flex-col">
       <header className="bg-white shadow-sm border-b px-6 py-4 flex items-center justify-between">
@@ -22,9 +37,29 @@ function App() {
           Social Maps
         </h1>
         <div className="flex items-center space-x-4">
-          <button className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors">
-            Sign In
-          </button>
+          {user ? (
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">Welcome, {user.username}</span>
+              <button 
+                onClick={() => setShowProfile(true)}
+                className="flex items-center space-x-2"
+              >
+                <img 
+                  src={user.avatar || `https://ui-avatars.com/api/?name=${user.username}&background=3b82f6&color=fff`}
+                  alt={user.username}
+                  className="w-8 h-8 rounded-full"
+                />
+                <div className={`w-3 h-3 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </header>
       
@@ -35,6 +70,16 @@ function App() {
           markers={sampleMarkers}
         />
       </main>
+      
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
+      
+      <UserProfile 
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
     </div>
   )
 }
