@@ -3,13 +3,17 @@ import Map from './components/Map'
 import AuthModal from './components/AuthModal'
 import UserProfile from './components/UserProfile'
 import FriendsPanel from './components/FriendsPanel'
+import NotificationPanel from './components/NotificationPanel'
 import { useAuthStore } from './store/authStore'
+import { useNotificationStore } from './store/notificationStore'
 
 function App() {
   const { user } = useAuthStore()
+  const { unreadCount } = useNotificationStore()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
   const [sampleMarkers] = useState([
     {
       id: '1',
@@ -41,6 +45,17 @@ function App() {
         <div className="flex items-center space-x-4">
           {user ? (
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowNotifications(true)}
+                className="relative px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
+              >
+                🔔 Notifications
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={() => setShowFriends(true)}
                 className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
@@ -92,6 +107,11 @@ function App() {
       <FriendsPanel 
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}
+      />
+      
+      <NotificationPanel 
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
       />
     </div>
   )
