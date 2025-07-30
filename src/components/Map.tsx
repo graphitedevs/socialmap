@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useFriendsStore } from '../store/friendsStore'
+import { useAuthStore } from '../store/authStore'
 
 // Fix default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -9,6 +11,16 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+})
+
+// Custom friend marker icon
+const friendIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 })
 
 interface MapProps {
@@ -45,6 +57,10 @@ export default function Map({
 }: MapProps) {
   const [isLoading, setIsLoading] = useState(true)
   const mapRef = useRef<any>(null)
+  const { user } = useAuthStore()
+  const { getFriendLocations } = useFriendsStore()
+  
+  const friendLocations = user ? getFriendLocations() : []
   
   useEffect(() => {
     // Simulate loading delay with occasional long delays (bug)
@@ -93,6 +109,39 @@ export default function Map({
               {marker.popup}
             </Popup>
           </Marker>
+        ))}
+        
+        {/* Friend location markers */}
+        {friendLocations.map((friend) => (
+          friend.location && (
+            <Marker 
+              key={`friend-${friend.id}`} 
+              position={[friend.location.lat, friend.location.lng]}
+              icon={friendIcon}
+            >
+              <Popup>
+                <div className="text-center">
+                  <img 
+                    src={friend.avatar || `https://ui-avatars.com/api/?name=${friend.username}&background=3b82f6&color=fff`}
+                    alt={friend.username}
+                    className="w-12 h-12 rounded-full mx-auto mb-2"
+                  />
+                  <p className="font-semibold">{friend.username}</p>
+                  <p className="text-sm text-gray-600">
+                    {friend.isOnline ? '🟢 Online' : '🔴 Offline'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Last updated: {new Date(friend.location.timestamp).toLocaleTimeString()}
+                  </p>
+                  {friend.location.accuracy && (
+                    <p className="text-xs text-gray-400">
+                      ±{friend.location.accuracy}m accuracy
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
         ))}
       </MapContainer>
       

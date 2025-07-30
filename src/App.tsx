@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react'
 import Map from './components/Map'
 import AuthModal from './components/AuthModal'
 import UserProfile from './components/UserProfile'
+import FriendsPanel from './components/FriendsPanel'
 import { useAuthStore } from './store/authStore'
 
 function App() {
   const { user } = useAuthStore()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [showFriends, setShowFriends] = useState(false)
   const [sampleMarkers] = useState([
     {
       id: '1',
@@ -39,6 +41,12 @@ function App() {
         <div className="flex items-center space-x-4">
           {user ? (
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowFriends(true)}
+                className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+              >
+                👥 Friends
+              </button>
               <span className="text-sm text-gray-600">Welcome, {user.username}</span>
               <button 
                 onClick={() => setShowProfile(true)}
@@ -79,6 +87,11 @@ function App() {
       <UserProfile 
         isOpen={showProfile}
         onClose={() => setShowProfile(false)}
+      />
+      
+      <FriendsPanel 
+        isOpen={showFriends}
+        onClose={() => setShowFriends(false)}
       />
     </div>
   )
