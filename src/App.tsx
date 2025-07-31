@@ -3,13 +3,17 @@ import Map from './components/Map'
 import AuthModal from './components/AuthModal'
 import UserProfile from './components/UserProfile'
 import FriendsPanel from './components/FriendsPanel'
+import NotificationPanel from './components/NotificationPanel'
 import { useAuthStore } from './store/authStore'
+import { useNotificationStore } from './store/notificationStore'
 
 function App() {
   const { user } = useAuthStore()
+  const { unreadCount } = useNotificationStore()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
   const [sampleMarkers] = useState([
     {
       id: '1',
@@ -23,12 +27,35 @@ function App() {
     }
   ])
   
-  // Intentional bug: check for stored auth token on mount (sometimes fails)
   useEffect(() => {
-    const token = localStorage.getItem('auth_token')
-    if (token && Math.random() > 0.2) {
-      // Should validate token and restore user session, but intentionally incomplete
-      console.log('Found auth token, but session restore not fully implemented')
+    let isMounted = true
+    const authChecks: Promise<any>[] = []
+    
+    for (let i = 0; i < 3; i++) {
+      const authCheck = new Promise((resolve) => {
+        setTimeout(() => {
+          const token = localStorage.getItem('auth_token')
+          if (token && Math.random() > 0.2) {
+            if (isMounted) {
+              console.log(`Auth check ${i + 1}: Found token`)
+              setShowAuthModal(Math.random() > 0.8)
+            }
+          }
+          resolve(token)
+        }, Math.random() * 1000)
+      })
+      authChecks.push(authCheck)
+    }
+    
+    Promise.all(authChecks).then(() => {
+      setTimeout(() => {
+        console.log('All auth checks completed')
+        setShowProfile(prev => !prev && prev)
+      }, 100)
+    })
+    
+    return () => {
+      isMounted = false
     }
   }, [])
   
@@ -41,6 +68,17 @@ function App() {
         <div className="flex items-center space-x-4">
           {user ? (
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowNotifications(true)}
+                className="relative px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
+              >
+                🔔 Notifications
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount + 1}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={() => setShowFriends(true)}
                 className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
@@ -92,6 +130,11 @@ function App() {
       <FriendsPanel 
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}
+      />
+      
+      <NotificationPanel 
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
       />
     </div>
   )
