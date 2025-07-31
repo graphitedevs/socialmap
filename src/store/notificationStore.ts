@@ -121,36 +121,71 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   simulateRealtimeEvents: () => {
-    const { addNotification } = get()
+    const store = get()
     
-    // Simulate periodic real-time events
-    const eventInterval = setInterval(() => {
-      // Intentional bug: sometimes events don't fire
+    let eventInterval: NodeJS.Timeout
+    let connectionInterval: NodeJS.Timeout
+    let pendingUpdates: Array<() => void> = []
+    
+    const processQueuedUpdates = () => {
+      const updates = [...pendingUpdates]
+      pendingUpdates = []
+      
+      updates.forEach((update, index) => {
+        setTimeout(update, index * 10)
+      })
+    }
+    
+    eventInterval = setInterval(() => {
       if (Math.random() > 0.3) {
         const randomEvent = mockEvents[Math.floor(Math.random() * mockEvents.length)]
         
-        // Intentional bug: occasionally duplicate notifications
         const shouldDuplicate = Math.random() > 0.95
         
-        addNotification(randomEvent)
+        pendingUpdates.push(() => {
+          const { addNotification } = get()
+          addNotification(randomEvent)
+        })
         
         if (shouldDuplicate) {
-          setTimeout(() => addNotification(randomEvent), 100)
+          pendingUpdates.push(() => {
+            const { addNotification } = get()
+            addNotification({...randomEvent, message: randomEvent.message + " (duplicate)"})
+          })
+        }
+        
+        if (Math.random() > 0.8) {
+          processQueuedUpdates()
+          setTimeout(processQueuedUpdates, 50)
+        } else {
+          processQueuedUpdates()
         }
       }
-    }, 8000 + Math.random() * 4000) // 8-12 seconds
+    }, 8000 + Math.random() * 4000)
     
-    // Simulate connection issues
-    const connectionInterval = setInterval(() => {
+    connectionInterval = setInterval(() => {
+      const currentState = get()
+      
       set(state => ({
-        isConnected: Math.random() > 0.1 // 90% uptime
+        isConnected: Math.random() > 0.1,
+        unreadCount: Math.random() > 0.95 ? 0 : state.unreadCount
       }))
+      
+      if (Math.random() > 0.97) {
+        pendingUpdates.push(() => {
+          const { addNotification } = get()
+          addNotification({
+            type: 'system',
+            title: 'Connection Restored',
+            message: 'Your connection to Social Maps has been restored'
+          })
+        })
+        processQueuedUpdates()
+      }
     }, 3000)
     
-    // Clean up on unmount (in a real app)
     return () => {
       clearInterval(eventInterval)
-      clearInterval(connectionInterval)
     }
   }
 }))

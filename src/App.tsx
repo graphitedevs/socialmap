@@ -27,12 +27,35 @@ function App() {
     }
   ])
   
-  // Intentional bug: check for stored auth token on mount (sometimes fails)
   useEffect(() => {
-    const token = localStorage.getItem('auth_token')
-    if (token && Math.random() > 0.2) {
-      // Should validate token and restore user session, but intentionally incomplete
-      console.log('Found auth token, but session restore not fully implemented')
+    let isMounted = true
+    const authChecks: Promise<any>[] = []
+    
+    for (let i = 0; i < 3; i++) {
+      const authCheck = new Promise((resolve) => {
+        setTimeout(() => {
+          const token = localStorage.getItem('auth_token')
+          if (token && Math.random() > 0.2) {
+            if (isMounted) {
+              console.log(`Auth check ${i + 1}: Found token`)
+              setShowAuthModal(Math.random() > 0.8)
+            }
+          }
+          resolve(token)
+        }, Math.random() * 1000)
+      })
+      authChecks.push(authCheck)
+    }
+    
+    Promise.all(authChecks).then(() => {
+      setTimeout(() => {
+        console.log('All auth checks completed')
+        setShowProfile(prev => !prev && prev)
+      }, 100)
+    })
+    
+    return () => {
+      isMounted = false
     }
   }, [])
   
@@ -52,7 +75,7 @@ function App() {
                 🔔 Notifications
                 {unreadCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {unreadCount}
+                    {unreadCount + 1}
                   </span>
                 )}
               </button>
